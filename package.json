@@ -1,0 +1,16 @@
+{
+  "name": "samapp",
+  "version": "1.0.0",
+  "description": "Multipurpose bot for my personal Discord server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "author": "sammtts",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  }
+}
