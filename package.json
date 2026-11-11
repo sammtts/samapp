@@ -10,6 +10,7 @@
   "author": "sammtts",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/translate": "^10.3.0",
     "discord.js": "^14.18.0",
     "dotenv": "^16.4.7"
   }
