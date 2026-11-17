@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
 const eventHandler = require('./handlers/eventHandler');
 const commandHandler = require('./handlers/commandHandler');
+const sendCurrentSong = require('./features/radio/currentSong.js');
 
 class Bot extends Client {
     constructor() {
@@ -27,6 +28,8 @@ class Bot extends Client {
         await eventHandler(this);
 
         await this.login(token);
+        await sendCurrentSong(this);
+        setInterval(() => sendCurrentSong(this), 60 * 1000);
     }
 }
 
