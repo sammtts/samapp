@@ -6,7 +6,9 @@ class Bot extends Client {
     constructor() {
         super({
             intents: [
-                GatewayIntentBits.Guilds
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
             ],
             partials: [
                 Partials.Channel,
@@ -15,6 +17,8 @@ class Bot extends Client {
         });
 
         this.commands = new Collection();
+        this.prefixCommands = new Collection();
+        this.prefix = 's!'
     }
 
     async init(token) {

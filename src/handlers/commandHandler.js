@@ -7,57 +7,85 @@ const { REST, Routes } = require('discord.js');
  */
 module.exports = async (client) => {
     const commandsPath = path.join(__dirname, '../commands');
-    const commandsArray = [];
+    const slashCommands = [];
 
     if (!fs.existsSync(commandsPath)) {
         fs.mkdirSync(commandsPath, { recursive: true });
         return;
     }
 
-    const readCommands = (dir) => {
+    const readCommands = (dir, type) => {
         const files = fs.readdirSync(dir, { withFileTypes: true });
 
         for (const file of files) {
             const fullPath = path.join(dir, file.name);
 
             if (file.isDirectory()) {
-                readCommands(fullPath);
+                readCommands(fullPath, type);
             } else if (file.name.endsWith('.js')) {
                 const command = require(fullPath);
 
-                if ('data' in command && 'execute' in command) {
-                    client.commands.set(command.data.name, command);
-                    commandsArray.push(command.data.toJSON());
-                    console.log(`Loaded command: ${command.data.name}`);
-                } else {
-                    console.warn(`The command at ${fullPath} is missing a required "data" or "execute" property.`);
+                if (typeof command.execute !== 'function') {
+                    console.warn(`The command at ${fullPath} is missing a required "execute" function.`);
+                    continue;
                 }
+
+                if (type === 'slash') {
+                    if (!command.data?.name || typeof command.data.toJSON !== 'function') {
+                        console.warn(`The slash command at ${fullPath} is missing valid "data" or "execute" properties.`);
+                        continue;
+                    }
+
+                    client.commands.set(command.data.name, command);
+                    slashCommands.push(command.data.toJSON());
+                    console.log(`Loaded slash command: ${command.data.name}`);
+                    continue;
+                }
+
+                if (typeof command.name !== 'string' || !command.name.trim()) {
+                    console.warn(`The prefix command at ${fullPath} is missing a valid "name" property.`);
+                    continue;
+                }
+
+                const aliases = Array.isArray(command.aliases) ? command.aliases : [];
+                const names = [command.name, ...aliases];
+                for (const name of names) {
+                    if (typeof name === 'string' && name.trim()) {
+                        client.prefixCommands.set(name.toLowerCase(), command);
+                    }
+                }
+                console.log(`Loaded prefix command: ${command.name}`);
             }
         }
     };
 
-    readCommands(commandsPath);
+    for (const type of ['prefix', 'slash']) {
+        const typePath = path.join(commandsPath, type);
+        if (fs.existsSync(typePath)) {
+            readCommands(typePath, type);
+        }
+    }
 
     const token = process.env.DISCORD_TOKEN;
     const clientId = process.env.CLIENT_ID;
     const guildId = process.env.GUILD_ID;
 
-    if (token && clientId && commandsArray.length > 0) {
+    if (token && clientId && slashCommands.length > 0) {
         const rest = new REST({ version: '10' }).setToken(token);
 
         try {
-            console.log(`Registering ${commandsArray.length} application (/) commands...`);
+            console.log(`Registering ${slashCommands.length} application (/) commands...`);
 
             if (guildId) {
                 await rest.put(
                     Routes.applicationGuildCommands(clientId, guildId),
-                    { body: commandsArray }
+                    { body: slashCommands }
                 );
                 console.log(`Successfully registered application commands to Guild ${guildId}.`);
             } else {
                 await rest.put(
                     Routes.applicationCommands(clientId),
-                    { body: commandsArray }
+                    { body: slashCommands }
                 );
                 console.log('Successfully registered global application commands.');
             }
